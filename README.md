@@ -77,7 +77,7 @@ To iterate through pages of data, use the `next()` and `previous()` functions:
 
 <div class="preWide"><pre>
 // get the data
-@response = @sdk.pub.playersClub.get {'limit'=>10}
+@response = @sdk.pub.playersClub.get {'limit':10}
 
 // get the next page
 @nextPage = @response.next
@@ -128,10 +128,10 @@ flexibility. We'll delete some data in a few ways:
 // assumes we have three accounts with accountIds 'act123', 'act456', and 'act789'
 
 // remove one the standard way
-@response = @sdk.delete '[publisher_id]/playersClub', array('accountId'=>'act123')
+@response = @sdk.delete '[publisher_id]/playersClub', {'accountId':'act123'}
 
 // remove another a different way
-@response = @sdk.pub.playersClub.delete array('accountId'=>'act456')
+@response = @sdk.pub.playersClub.delete {'accountId':'act456'}
 
 // remove the last in yet another way
 @response = @sdk.pub.playersClub.act789.delete()
