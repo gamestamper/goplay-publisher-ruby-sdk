@@ -1,2 +1,2 @@
-require_relative '../lib/sdk/publisher_sdk.rb'
+require_relative '../lib/publisher_sdk.rb'
 require 'yaml'

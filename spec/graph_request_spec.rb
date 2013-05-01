@@ -10,5 +10,6 @@ describe GraphRequest do
 			@graph_request.should be_an_instance_of GraphRequest
 		end
 	end
+	
 end
 

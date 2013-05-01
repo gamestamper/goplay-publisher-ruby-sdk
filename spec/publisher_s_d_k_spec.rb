@@ -6,7 +6,7 @@ class PublisherSDKSpec < Test::Unit::TestCase
 
 	describe PublisherSDK do
 		before :each do
-				@publisher_sdk = PublisherSDK.new "pbgspub", "a8sdfjweuy3456"
+				@publisher_sdk = PublisherSDK.new "pbgspub", "a8sdfjweuy3456", true
 		end
 		
 		describe "#new" do
@@ -29,6 +29,7 @@ class PublisherSDKSpec < Test::Unit::TestCase
 		
 		describe "#magic_methods" do
 			it "should update its endpoint via nesting function calls" do
+				@publisher_sdk.pub.endpoint.to_s.should eql "/pbgspub"
 				@publisher_sdk.pub.something.endpoint.to_s.should eql "/pbgspub/something"
 			end
 		end
@@ -124,5 +125,102 @@ class PublisherSDKSpec < Test::Unit::TestCase
 				resp.next.previous.data.count.should eql 5
 			end
 		end
+
+		describe "#run" do
+			it "handles errors as SDKExceptions" do
+				begin
+					resp = @publisher_sdk.handle_response(GraphRequest.new('me').get_response)
+					true.should eql false
+				rescue SDKException=>s
+					s.code.should eql 2500
+				end
+			end
+		end
+		
+		describe "#fail_token" do
+			it "increments token failures" do
+				@publisher_sdk.get_token
+				@publisher_sdk.get_token_failures.should eql 0
+				@publisher_sdk.fail_token
+				@publisher_sdk.get_token_failures.should eql 1
+				@publisher_sdk.clear_token_failures
+				@publisher_sdk.get_token_failures.should eql 0
+			end
+		end
+		
+		describe "#retry_request" do
+			it "should retry a request that failed due to a bad token" do
+				#ensure there is a token
+				original_token = @publisher_sdk.get_token
+				
+				#get a response for a request
+				resp = GraphRequest.new("pbgspub/playersclub").get_response
+				
+				#mock out an error response
+				resp.error = SDKException.new "failed token message", 190, "OauthException", resp.request.effective_url
+				
+				begin
+					#handle it
+					resp = @publisher_sdk.handle_response resp
+
+					resp.error.should eql nil
+					@publisher_sdk.get_stored_token.should_not eql original_token
+					
+				rescue SDKException=>s
+					s.code.should_not eql 190
+				end
+			end
+		end
+		
+		describe "#retry_request" do
+			it "should not retry a request that failed too many times" do
+				#ensure there is a token
+				@publisher_sdk.get_token
+				
+				#get a response for a request
+				resp = GraphRequest.new("pbgspub/playersclub").get_response
+				
+				#mock out an error response
+				resp.error = SDKException.new "failed token message", 190, "OauthException", resp.request.effective_url
+				
+				#fail it a few times
+				while @publisher_sdk.get_token_failures < PublisherSDK::ALLOWED_FAILURES do
+					@publisher_sdk.fail_token
+				end
+				
+				begin
+					#handle it
+					resp = @publisher_sdk.handle_response resp
+
+					resp.error.should_not eql nil
+				rescue SDKException=>s
+					s.code.should eql 190
+				end
+			end
+		end
+		
+		describe "#delete" do
+			it "should delete by accountId from sdk.pub.playersclub" do
+
+				players = {:players=>{:email=>'a@b.com',:birthday=>'6/26/1971',:accountId=>'account1'}}
+				resp = @publisher_sdk.pub.playersclub.post players		
+				resp = @publisher_sdk.pub.playersclub.get
+				
+				@publisher_sdk.pub.playersclub.endpoint.should eql "/pbgspub/playersclub"
+				
+				resp.data.each{|v| 
+					begin
+						resp = @publisher_sdk.pub.playersclub.delete v["accountId"]
+					rescue SDKException=>s
+						s.url.should eql nil
+					end			
+				}
+				
+				resp = @publisher_sdk.pub.playersclub.get
+				resp.data.count.should eql 0
+				
+			end
+		end
+
 	end
 end

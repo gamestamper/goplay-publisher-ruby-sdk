@@ -1,5 +1,5 @@
 class SDKComponent
-	
+		
 	def ensure_slash s
 		s = s.to_s
 		if s.empty?

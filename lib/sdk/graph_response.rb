@@ -24,7 +24,7 @@ class GraphResponse < SDKComponent
 			@data = response["data"]
 		end
 		if !response["error"].nil? 
-			@error = SDKException.new "Exception from "+request.effective_url+": "+response["error"]["message"]
+			@error = SDKException.new response["error"]["message"],response["error"]["code"],response["error"]["type"],request.effective_url
 		end
 		@paging = response["paging"]
 	end
